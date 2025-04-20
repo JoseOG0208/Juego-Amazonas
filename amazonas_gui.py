@@ -16,6 +16,7 @@ class AmazonasGame:
         self.selected = None
         self.awaiting_arrow = False
         self.last_move = None
+        self.finished = False
         self.place_initial_pieces()
 
     def place_initial_pieces(self):
@@ -60,18 +61,18 @@ class AmazonasGame:
     def shoot_arrow(self, r_arrow, c_arrow):
         r, c = self.last_move
         if not self.is_valid_path(r, c, r_arrow, c_arrow):
-            return False
+            return False, None
         self.board[r_arrow][c_arrow] = "X"
         self.awaiting_arrow = False
         self.last_move = None
         self.selected = None
         self.turn = "black" if self.turn == "white" else "white"
 
-        # Verificar si el siguiente jugador puede moverse
         if not self.has_valid_moves(self.turn):
             winner = "Blanco" if self.turn == "black" else "Negro"
-            messagebox.showinfo("Juego terminado", f"¡{winner} gana!")
-        return True
+            self.finished = True
+            return True, winner
+        return True, None
 
     def has_valid_moves(self, player):
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1),
@@ -81,9 +82,10 @@ class AmazonasGame:
                 if self.board[r][c] == player:
                     for dr, dc in directions:
                         nr, nc = r + dr, c + dc
-                        while 0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE and self.board[nr][nc] == "":
-                            if self.has_arrow_moves(nr, nc):
-                                return True
+                        while 0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE:
+                            if self.board[nr][nc] == "" and self.is_valid_path(r, c, nr, nc):
+                                if self.has_arrow_moves(nr, nc):
+                                    return True
                             nr += dr
                             nc += dc
         return False
@@ -93,15 +95,22 @@ class AmazonasGame:
                       (-1, -1), (-1, 1), (1, -1), (1, 1)]
         for dr, dc in directions:
             nr, nc = r + dr, c + dc
-            while 0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE and self.board[nr][nc] == "":
-                return True
+            while 0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE:
+                if self.board[nr][nc] == "" and self.is_valid_path(r, c, nr, nc):
+                    return True
+                nr += dr
+                nc += dc
         return False
 
 class AmazonasGUI:
     def __init__(self, root):
-        self.game = AmazonasGame()
         self.root = root
-        self.canvas = tk.Canvas(root, width=TILE_SIZE*BOARD_SIZE, height=TILE_SIZE*BOARD_SIZE)
+        self.game = AmazonasGame()
+
+        self.turn_label = tk.Label(root, text="Turno actual: Blanco", font=("Helvetica", 14, "bold"))
+        self.turn_label.pack(pady=5)
+
+        self.canvas = tk.Canvas(root, width=TILE_SIZE * BOARD_SIZE, height=TILE_SIZE * BOARD_SIZE)
         self.canvas.pack()
         self.canvas.bind("<Button-1>", self.on_click)
 
@@ -133,16 +142,29 @@ class AmazonasGUI:
                         fill="gray20"
                     )
 
+        self.update_turn_label()
+
+    def update_turn_label(self):
+        if self.game.finished:
+            self.turn_label.config(text="Juego terminado")
+        else:
+            jugador = "Blanco" if self.game.turn == "white" else "Negro"
+            self.turn_label.config(text=f"Turno actual: {jugador}")
+
     def on_click(self, event):
+        if self.game.finished:
+            return
+
         col = event.x // TILE_SIZE
         row = event.y // TILE_SIZE
         current = self.game.board[row][col]
 
         if self.game.awaiting_arrow:
-            if self.game.shoot_arrow(row, col):
+            valid, winner = self.game.shoot_arrow(row, col)
+            if valid:
                 self.draw_board()
-            else:
-                print("Flecha inválida.")
+                if winner:
+                    messagebox.showinfo("Juego terminado", f"¡{winner} gana!")
         elif self.game.selected:
             r1, c1 = self.game.selected
             if self.game.move_amazon(r1, c1, row, col):
