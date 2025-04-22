@@ -143,7 +143,7 @@ class AmazonasGUI:
                 y1 = row * TILE_SIZE
                 x2 = x1 + TILE_SIZE
                 y2 = y1 + TILE_SIZE
-                fill = "#EEE" if (row + col) % 2 == 0 else "#AAA"
+                fill = "#F0D9B5" if (row + col) % 2 == 0 else "#B58863"
                 self.canvas.create_rectangle(x1, y1, x2, y2, fill=fill)
 
                 piece = self.game.board[row][col]
