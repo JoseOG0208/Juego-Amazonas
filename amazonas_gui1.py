@@ -69,6 +69,6 @@ class AmazonasGUI:
 #ejecutar la pantalla visual
 if __name__ == "__main__":
     root = tk.Tk()
-    root.title("Juego de las Amazonas (Solo visual)")
+    root.title("Juego de las Amazonas")
     app = AmazonasGUI(root)
     root.mainloop()
